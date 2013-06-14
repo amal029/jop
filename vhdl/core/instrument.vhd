@@ -2,7 +2,7 @@
 --
 --  This file is a part of JOP, the Java Optimized Processor
 --
---  Copyright (C) 2001-2008, Martin Schoeberl (martin@jopdesign.com)
+--  Copyright (C) 2013, Avinash Malik (avinash.malik@auckland.ac.nz)
 --
 --  This program is free software: you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
