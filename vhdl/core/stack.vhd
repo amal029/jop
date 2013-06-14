@@ -59,12 +59,13 @@ generic (
 port (
 	clk, reset	: in std_logic;
 
+	hw			: in std_logic_vector(width-1 downto 0);
 	din			: in std_logic_vector(width-1 downto 0);
 	dir			: in std_logic_vector(ram_width-1 downto 0);
-	opd			: in std_logic_vector(15 downto 0);		-- index for vp load opd
-	jpc			: in std_logic_vector(jpc_width downto 0);	-- jpc read
+	opd			: in std_logic_vector(15 downto 0);-- index for vp load opd
+	jpc			: in std_logic_vector(jpc_width downto 0);-- jpc read
 
-	sel_sub		: in std_logic;							-- 0..add, 1..sub
+	sel_sub		: in std_logic;			-- 0..add, 1..sub
 	sel_amux	: in std_logic;							-- 0..sum, 1..lmux
 	ena_a		: in std_logic;							-- 1..store new value
 	sel_bmux	: in std_logic;							-- 0..a, 1..mem
@@ -72,7 +73,8 @@ port (
 	sel_shf		: in std_logic_vector(1 downto 0);		-- sr, sl, sra, (sr)
 	sel_lmux	: in std_logic_vector(2 downto 0);		-- log, shift, mem, din, reg
 	sel_imux	: in std_logic_vector(1 downto 0);		-- java opds
-	sel_rmux	: in std_logic_vector(1 downto 0);		-- sp, vp, jpc
+	sel_rmux	: in std_logic_vector(1 downto 0);		-- sp, vp,
+												 -- jpc, hw
 	sel_smux	: in std_logic_vector(1 downto 0);		-- sp, a, sp-1, sp+1
 
 	sel_mmux	: in std_logic;							-- 0..a, 1..b
@@ -101,8 +103,8 @@ architecture rtl of stack is
 component shift is
 generic (width : integer);
 port (
-	din			: in std_logic_vector(width-1 downto 0);
-	off			: in std_logic_vector(4 downto 0);
+	din		: in std_logic_vector(width-1 downto 0);
+	off		: in std_logic_vector(4 downto 0);
 	shtyp		: in std_logic_vector(1 downto 0);
 	dout		: out std_logic_vector(width-1 downto 0)
 );
@@ -126,13 +128,12 @@ port (
 	rdaddress	: in std_logic_vector(ram_width-1 downto 0);
 	wren		: in std_logic;
 	clock		: in std_logic;
-        reset           : in std_logic;
-        
+	reset           : in std_logic;
 	q			: out std_logic_vector(width-1 downto 0)
 );
 end component;
 
-	signal a, b			: std_logic_vector(width-1 downto 0);
+	signal a, b		: std_logic_vector(width-1 downto 0);
 	signal ram_dout		: std_logic_vector(width-1 downto 0);
 
 	signal sp, spp, spm	: std_logic_vector(ram_width-1 downto 0);
@@ -140,9 +141,9 @@ end component;
 						: std_logic_vector(ram_width-1 downto 0);
 	signal ar			: std_logic_vector(ram_width-1 downto 0);
 
-	signal sum			: std_logic_vector(32 downto 0);
-	signal sout			: std_logic_vector(width-1 downto 0);
-	signal log			: std_logic_vector(width-1 downto 0);
+	signal sum		: std_logic_vector(32 downto 0);
+	signal sout		: std_logic_vector(width-1 downto 0);
+	signal log		: std_logic_vector(width-1 downto 0);
 	signal immval		: std_logic_vector(width-1 downto 0);
 	signal opddly		: std_logic_vector(15 downto 0);
 
@@ -229,8 +230,10 @@ begin
 		when "01" =>
 --			rmux <= "00" & vp0;
 			rmux <= std_logic_vector(to_signed(to_integer(unsigned(vp0)), jpc_width+1));
-		when others =>
+		when "10" =>
 			rmux <= jpc;
+		when others => null;    -- Do nothing in case of ldcr, because
+                                        -- ldcr loads direcrtly into lmux
 	end case;
 
 --
@@ -260,6 +263,8 @@ begin
 			lmux <= immval;
 		when "100" =>
 			lmux <= din;
+		when "111" =>
+			lmux <= hw;     -- This is the hw counter being selected
 		when others =>
 			lmux <= std_logic_vector(to_signed(to_integer(unsigned(rmux)), width));
 	end case;

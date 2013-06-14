@@ -37,7 +37,8 @@ package jop_config is
 	constant pll_div : natural := 1;
 
 	-- constant for on-chip memory
-	constant ram_width : integer := 8;	-- address bits of internal ram (sp,...)
+	constant ram_width : integer := 9; -- address bits of internal ram (sp,...)
+        -- Original JOP has a ram address bits of 8
 
 end jop_config;
 

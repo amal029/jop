@@ -3,7 +3,29 @@ quietly WaveActivateNextPane {} 0
 add wave -noupdate -format Logic -radix hexadecimal /tb_jop/joptop/clk_int
 add wave -noupdate -format Logic -radix hexadecimal /tb_jop/joptop/int_res
 add wave -noupdate -format Logic /tb_jop/joptop/io/wd
-add wave -noupdate -format Literal -radix ascii /tb_jop/joptop/io/ua/char
+add wave -noupdate -divider INST
+add wave -noupdate -format Literal /tb_jop/joptop/cpu/core/ena_eot  
+add wave -noupdate -format Literal /tb_jop/joptop/cpu/core/ena_pmc  
+add wave -noupdate -format Literal /tb_jop/joptop/cpu/core/ena_pac  
+add wave -noupdate -format Literal /tb_jop/joptop/cpu/core/ena_poc
+add wave -noupdate -format Literal /tb_jop/joptop/cpu/core/ena_cyc
+add wave -noupdate -format Literal /tb_jop/joptop/cpu/core/inst/dump 
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/core/inst/eot_counter  
+add wave -noupdate -format Literal /tb_jop/joptop/cpu/core/ena_hw 
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/core/inst/hw  
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/core/inst/mhw  
+add wave -noupdate -format Literal /tb_jop/joptop/cpu/core/inst/mux 
+add wave -noupdate -divider MISSES
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/mem/mc/misses 
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/mem/mc/finds
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/mem/oc/misses
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/mem/oc/finds
+add wave -noupdate -divider DEBUG
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/core/inst/ain 
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/core/stk/a 
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/mem/ram_addr
+add wave -noupdate -format Literal -radix decimal /tb_jop/joptop/cpu/sc_ctrl_mem_out
+add wave -noupdate -format Literal -radix hexadecimal /tb_jop/joptop/exc_req 
 add wave -noupdate -divider {java pc}
 add wave -noupdate -format Literal -radix hexadecimal /tb_jop/joptop/cpu/core/bcf/jpc
 add wave -noupdate -divider bcfetch

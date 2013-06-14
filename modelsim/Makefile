@@ -5,7 +5,7 @@
 
 JOPDIR=../vhdl
 #OPTIONS=-93 -quiet -check_synthesis -lint -pedanticerrors
-OPTIONS=-2008 -quiet
+OPTIONS=-2008 -quiet -O5
 
 # Mody accordingly to point to the Modelsim Xilix and Altera 
 # simulation libraries. Use it for the simulation with the 
@@ -13,6 +13,13 @@ OPTIONS=-2008 -quiet
 
 XIL_VHDL_LIB=
 ALT_VHDL_LIB=
+
+# Default width mcache size = 2**JPC_WIDTH
+JPC_WIDTH ?= 12
+EOT_FILE ?= /tmp/counter.txt
+MC_FILE ?= /tmp/mc_profile.txt
+OC_FILE ?= /tmp/oc_profile.txt
+TRANSCRIPT ?= transcript
 
 ifeq ($(WINDIR),)
 	WINE=
@@ -25,7 +32,9 @@ endif
 all: clean base
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/top/jopcyc.vhd
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/simulation/tb_jop.vhd
-	$(WINE) vsim -do sim.do tb_jop
+	$(WINE) vsim -c -G /tb_jop/joptop/jpc_width=$(JPC_WIDTH) \
+	-l $(TRANSCRIPT) -do sim.do tb_jop
+	# $(WINE) vsim -debugDB -do sim.do tb_jop
 
 
 cmp: clean base
@@ -86,6 +95,12 @@ base:
 	$(WINE) vlib grlib
 	$(WINE) vlib gaisler
 	$(WINE) vlib techmap
+# Change the ocache to be zero
+ifeq ($(USE_OCACHE), false)
+	sed -i -e "s/USE_OCACHE\s\+:\s\+std_logic\s\+:=\s\+'1'/USE_OCACHE : std_logic := '0'/" $(JOPDIR)/top/jop_config_global.vhd
+else
+	sed -i -e "s/USE_OCACHE\s\+:\s\+std_logic\s\+:=\s\+'0'/USE_OCACHE : std_logic := '1'/" $(JOPDIR)/top/jop_config_global.vhd
+endif
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/simpcon/sc_pack.vhd
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/top/jop_config_global.vhd
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/simulation/sim_jop_config_100.vhd
@@ -111,6 +126,7 @@ base:
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/core/decode.vhd
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/core/shift.vhd
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/core/stack.vhd
+	$(WINE) vcom $(OPTIONS) $(JOPDIR)/core/instrument.vhd
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/core/core.vhd
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/scio/sc_sys.vhd
 	$(WINE) vcom $(OPTIONS) $(JOPDIR)/scio/scio_min.vhd

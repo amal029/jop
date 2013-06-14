@@ -66,45 +66,54 @@ use ieee.numeric_std.all ;
 
 use work.jop_types.all;
 use work.jop_config.all;
+use work.jop_config_global.all;
 
 entity core is
 
-generic (
-	jpc_width	: integer;			-- address bits of java bytecode pc
+  generic (
+    jpc_width	: integer;			-- address bits of java bytecode pc
 
-	width		: integer := 32;	-- one data word
-	pc_width	: integer := 11;	-- address bits of internal instruction rom (upper half)
-	i_width		: integer := 10		-- instruction width
-);
+    width		: integer := 32;	-- one data word
+    pc_width	: integer := 11;	-- address bits of internal instruction rom (upper half)
+    i_width		: integer := 10		-- instruction width
+    );
 
-port (
-	clk, reset	: in std_logic;
+  port (
+    clk, reset	: in std_logic;
 
 -- memio connection
 
-	bsy			: in std_logic;
-	din			: in std_logic_vector(width-1 downto 0);
-	mem_in		: out mem_in_type;
-	mmu_instr	: out std_logic_vector(MMU_WIDTH-1 downto 0);
-	mul_wr		: out std_logic;
-	wr_dly		: out std_logic;
+    bsy		: in std_logic;
+    din		: in std_logic_vector(width-1 downto 0);
+    mem_in		: out mem_in_type;
+    mmu_instr	: out std_logic_vector(MMU_WIDTH-1 downto 0);
+    mul_wr		: out std_logic;
+    wr_dly		: out std_logic;
 
 --	connection to mmu
 
-	bc_wr_addr	: in std_logic_vector(jpc_width-3 downto 0);	-- address for jbc (in words!)
-	bc_wr_data	: in std_logic_vector(31 downto 0);	-- write data for jbc
-	bc_wr_ena	: in std_logic;
+    bc_wr_addr	: in std_logic_vector(jpc_width-3 downto 0);	-- address for jbc (in words!)
+    bc_wr_data	: in std_logic_vector(31 downto 0);	-- write data for jbc
+    bc_wr_ena	: in std_logic;
 
 -- interrupt from io
 
-	irq_in		: in irq_bcf_type;
-	irq_out		: out irq_ack_type;
+    irq_in		: in irq_bcf_type;
+    irq_out		: out irq_ack_type;
 
-	sp_ov		: out std_logic;
+    sp_ov		: out std_logic;
 
-	aout		: out std_logic_vector(width-1 downto 0);
-	bout		: out std_logic_vector(width-1 downto 0)
-);
+    aout		: out std_logic_vector(width-1 downto 0);
+    bout		: out std_logic_vector(width-1 downto 0);
+
+    -- The instrumentation signals
+    ena_poc,ena_pmc,ena_pac:    out std_logic;
+    inst_state: out std_logic_vector (CD_NUM+1 downto 0);
+    fmc: in std_logic_vector (width-1 downto 0); -- The input from method cache (finds)
+    mmc: in std_logic_vector (width-1 downto 0); -- The input from method cache (misses)
+    foc: in std_logic_vector (width-1 downto 0); -- The input from object cache (finds)
+    moc: in std_logic_vector (width-1 downto 0) -- The input from object cache (misses)
+    );
 end core;
 
 architecture rtl of core is
@@ -112,141 +121,165 @@ architecture rtl of core is
 --
 --	components:
 --
-component bcfetch is
-generic (jpc_width : integer; pc_width : integer);
-port (
-	clk, reset	: in std_logic;
+  component bcfetch is
+    generic (jpc_width : integer; pc_width : integer);
+    port (
+      clk, reset	: in std_logic;
 
-	jpc_out		: out std_logic_vector(jpc_width downto 0);		-- jpc read
-	din			: in std_logic_vector(31 downto 0);				-- A from stack
-	jpc_wr		: in std_logic;
+      jpc_out		: out std_logic_vector(jpc_width downto 0);		-- jpc read
+      din		: in std_logic_vector(31 downto 0);				-- A from stack
+      jpc_wr		: in std_logic;
 
 --	connection to mmu
 
-	bc_wr_addr	: in std_logic_vector(jpc_width-3 downto 0);	-- address for jbc (in words!)
-	bc_wr_data	: in std_logic_vector(31 downto 0);	-- write data for jbc
-	bc_wr_ena	: in std_logic;
+      bc_wr_addr	: in std_logic_vector(jpc_width-3 downto 0);	-- address for jbc (in words!)
+      bc_wr_data	: in std_logic_vector(31 downto 0);	-- write data for jbc
+      bc_wr_ena	: in std_logic;
 
 
-	jfetch		: in std_logic;
-	jopdfetch	: in std_logic;
+      jfetch		: in std_logic;
+      jopdfetch	: in std_logic;
 
-	zf, nf		: in std_logic;
-	eq, lt		: in std_logic;
+      zf, nf		: in std_logic;
+      eq, lt		: in std_logic;
 
-	jbr			: in std_logic;
+      jbr			: in std_logic;
 
-	irq_in		: in irq_bcf_type;
-	irq_out		: out irq_ack_type;
+      irq_in		: in irq_bcf_type;
+      irq_out		: out irq_ack_type;
 
-	jpaddr		: out std_logic_vector(pc_width-1 downto 0);	-- address for JVM
-	opd			: out std_logic_vector(15 downto 0)				-- operands
-);
-end component;
+      jpaddr		: out std_logic_vector(pc_width-1 downto 0);	-- address for JVM
+      opd			: out std_logic_vector(15 downto 0)				-- operands
+      );
+  end component;
 
-component fetch is
-generic (pc_width : integer; i_width : integer);
-port (
-	clk, reset	: in std_logic;
+  component fetch is
+    generic (pc_width : integer; i_width : integer);
+    port (
+      clk, reset	: in std_logic;
 
-	nxt, opd	: out std_logic;	-- jfetch and jopdfetch from table
+      nxt, opd	: out std_logic;	-- jfetch and jopdfetch from table
 
-	br			: in std_logic;
-	jmp			: in std_logic;
-	bsy 		: in std_logic;
-	jpaddr		: in std_logic_vector(pc_width-1 downto 0);
+      br			: in std_logic;
+      jmp			: in std_logic;
+      bsy 		: in std_logic;
+      jpaddr		: in std_logic_vector(pc_width-1 downto 0);
 
-	dout		: out std_logic_vector(i_width-1 downto 0)		-- internal instruction (rom)
-);
-end component;
+      dout		: out std_logic_vector(i_width-1 downto 0)		-- internal instruction (rom)
+      );
+  end component;
 
-component stack is
-generic (width : integer; jpc_width : integer);
-port (
-	clk, reset	: in std_logic;
+  component stack is
+    generic (width : integer; jpc_width : integer);
+    port (
+      clk, reset	: in std_logic;
 
-	din			: in std_logic_vector(width-1 downto 0);
-	dir			: in std_logic_vector(ram_width-1 downto 0);
-	opd			: in std_logic_vector(15 downto 0);		-- index for vp load opd
-	jpc			: in std_logic_vector(jpc_width downto 0);	-- jpc read
+      hw			: in std_logic_vector(width-1 downto 0);
+      din			: in std_logic_vector(width-1 downto 0);
+      dir			: in std_logic_vector(ram_width-1 downto 0);
+      opd			: in std_logic_vector(15 downto 0);		-- index for vp load opd
+      jpc			: in std_logic_vector(jpc_width downto 0);	-- jpc read
 
-	sel_sub		: in std_logic;							-- 0..add, 1..sub
-	sel_amux		: in std_logic;							-- 0..sum, 1..lmux
-	ena_a		: in std_logic;							-- 1..store new value
-	sel_bmux	: in std_logic;							-- 0..a, 1..mem
-	sel_log		: in std_logic_vector(1 downto 0);		-- pop/st, and, or, xor
-	sel_shf		: in std_logic_vector(1 downto 0);		-- sr, sl, sra, (sr)
-	sel_lmux	: in std_logic_vector(2 downto 0);		-- log, shl, mem, io, reg
-	sel_imux	: in std_logic_vector(1 downto 0);		-- java opds
-	sel_rmux	: in std_logic_vector(1 downto 0);		-- sp, vp, jpc
-	sel_smux	: in std_logic_vector(1 downto 0);		-- sp, a, sp-1, sp+1
+      sel_sub		: in std_logic;							-- 0..add, 1..sub
+      sel_amux		: in std_logic;							-- 0..sum, 1..lmux
+      ena_a		: in std_logic;							-- 1..store new value
+      sel_bmux	: in std_logic;							-- 0..a, 1..mem
+      sel_log		: in std_logic_vector(1 downto 0);		-- pop/st, and, or, xor
+      sel_shf		: in std_logic_vector(1 downto 0);		-- sr, sl, sra, (sr)
+      sel_lmux	: in std_logic_vector(2 downto 0);		-- log, shl, mem, io, reg
+      sel_imux	: in std_logic_vector(1 downto 0);		-- java opds
+      sel_rmux	: in std_logic_vector(1 downto 0);		-- sp, vp, jpc
+      sel_smux	: in std_logic_vector(1 downto 0);		-- sp, a, sp-1, sp+1
 
-	sel_mmux	: in std_logic;							-- 0..a, 1..b
-	sel_rda		: in std_logic_vector(2 downto 0);		-- 
-	sel_wra		: in std_logic_vector(2 downto 0);		-- 
+      sel_mmux	: in std_logic;							-- 0..a, 1..b
+      sel_rda		: in std_logic_vector(2 downto 0);		-- 
+      sel_wra		: in std_logic_vector(2 downto 0);		-- 
 
-	wr_ena		: in std_logic;
+      wr_ena		: in std_logic;
 
-	ena_b		: in std_logic;
-	ena_vp		: in std_logic;
-	ena_ar		: in std_logic;
+      ena_b		: in std_logic;
+      ena_vp		: in std_logic;
+      ena_ar		: in std_logic;
 
-	sp_ov		: out std_logic;
+      sp_ov		: out std_logic;
 
-	zf			: out std_logic;
-	nf			: out std_logic;
-	eq			: out std_logic;
-	lt			: out std_logic;
-	aout		: out std_logic_vector(width-1 downto 0);
-	bout		: out std_logic_vector(width-1 downto 0)
-);
-end component;
+      zf		: out std_logic;
+      nf		: out std_logic;
+      eq		: out std_logic;
+      lt		: out std_logic;
+      aout		: out std_logic_vector(width-1 downto 0);
+      bout		: out std_logic_vector(width-1 downto 0)
+      );
+  end component;
 
-component decode is
-generic (i_width : integer);
-port (
-	clk, reset	: in std_logic;
+  component decode is
+    generic (i_width : integer);
+    port (
+      clk, reset	: in std_logic;
 
-	instr		: in std_logic_vector(i_width-1 downto 0);
-	zf, nf		: in std_logic;
-	eq, lt		: in std_logic;
+      instr		: in std_logic_vector(i_width-1 downto 0);
+      zf, nf		: in std_logic;
+      eq, lt		: in std_logic;
 
-	bcopd		: in std_logic_vector(15 downto 0);	-- index for mmu
+      bcopd		: in std_logic_vector(15 downto 0);	-- index for mmu
 
-	br			: out std_logic;
-	jmp			: out std_logic;
-	jbr			: out std_logic;
+      br			: out std_logic;
+      jmp			: out std_logic;
+      jbr			: out std_logic;
 
-	mem_in		: out mem_in_type;
-	mmu_instr	: out std_logic_vector(MMU_WIDTH-1 downto 0);
-	mul_wr		: out std_logic;
-	wr_dly		: out std_logic;
+      mem_in		: out mem_in_type;
+      mmu_instr	: out std_logic_vector(MMU_WIDTH-1 downto 0);
+      mul_wr		: out std_logic;
+      wr_dly		: out std_logic;
 
-	dir			: out std_logic_vector(ram_width-1 downto 0);
+      dir			: out std_logic_vector(ram_width-1 downto 0);
 
-	sel_sub		: out std_logic;						-- 0..add, 1..sub
-	sel_amux		: out std_logic;						-- 0..sum, 1..lmux
-	ena_a		: out std_logic;						-- 1..store new value
-	sel_bmux	: out std_logic;						-- 0..a, 1..mem
-	sel_log		: out std_logic_vector(1 downto 0);		-- pop/st, and, or, xor
-	sel_shf		: out std_logic_vector(1 downto 0);		-- sr, sl, sra, (sr)
-	sel_lmux	: out std_logic_vector(2 downto 0);		-- log, shl, mem, io, reg
-	sel_imux	: out std_logic_vector(1 downto 0);		-- java opds
-	sel_rmux	: out std_logic_vector(1 downto 0);		-- sp, vp, jpc
-	sel_smux	: out std_logic_vector(1 downto 0);		-- sp, a, sp-1, sp+1
+      sel_sub		: out std_logic;						-- 0..add, 1..sub
+      sel_amux		: out std_logic;						-- 0..sum, 1..lmux
+      ena_a		: out std_logic;						-- 1..store new value
+      sel_bmux	: out std_logic;						-- 0..a, 1..mem
+      sel_log		: out std_logic_vector(1 downto 0);		-- pop/st, and, or, xor
+      sel_shf		: out std_logic_vector(1 downto 0);		-- sr, sl, sra, (sr)
+      sel_lmux	: out std_logic_vector(2 downto 0);		-- log, shl, mem, io, reg
+      sel_imux	: out std_logic_vector(1 downto 0);		-- java opds
+      sel_rmux	: out std_logic_vector(1 downto 0);		-- sp, vp, jpc
+      sel_smux	: out std_logic_vector(1 downto 0);		-- sp, a, sp-1, sp+1
 
-	sel_mmux	: out std_logic;						-- 0..a, 1..b
-	sel_rda		: out std_logic_vector(2 downto 0);		-- 
-	sel_wra		: out std_logic_vector(2 downto 0);		-- 
+      sel_mmux	: out std_logic;				-- 0..a, 1..b
+      sel_rda		: out std_logic_vector(2 downto 0);		-- 
+      sel_wra		: out std_logic_vector(2 downto 0);		-- 
 
-	wr_ena		: out std_logic;
+      wr_ena		: out std_logic;
 
-	ena_b		: out std_logic;
-	ena_vp		: out std_logic;
-	ena_jpc		: out std_logic;
-	ena_ar		: out std_logic
-);
-end component;
+      ena_b		: out std_logic;
+      ena_vp		: out std_logic;
+      ena_jpc		: out std_logic;
+      ena_ar		: out std_logic;
+      ena_cyc           : out std_logic;
+      ena_hw            : out std_logic
+      );
+  end component;
+
+--
+--
+-- This is the profiling component
+--
+--
+
+  component instrument is
+    generic (width: integer);
+    port (
+      clk, reset, ena_cyc, ena_hw: in std_logic;
+      ain: std_logic_vector (width-1 downto 0);
+      ena_poc, ena_pmc, ena_pac : out std_logic;
+      inst_state: out std_logic_vector (CD_NUM+1 downto 0);
+      hw:  out std_logic_vector (width-1 downto 0); -- The output to the stack
+      fmc: in std_logic_vector (width-1 downto 0); -- The input from method cache (finds)
+      mmc: in std_logic_vector (width-1 downto 0); -- The input from method cache (misses)
+      foc: in std_logic_vector (width-1 downto 0); -- The input from object cache (finds)
+      moc: in std_logic_vector (width-1 downto 0) -- The input from object cache (misses)
+      );
+  end component;
 
 --
 --	Signals
@@ -255,89 +288,99 @@ end component;
 --
 -- (bc)fetch connections
 --
-	signal br			: std_logic;
-	signal jmp			: std_logic;
-	signal jbr			: std_logic;
+  signal br			: std_logic;
+  signal jmp			: std_logic;
+  signal jbr			: std_logic;
 
-	signal jfetch		: std_logic;
-	signal jopdfetch	: std_logic;
+  signal jfetch		: std_logic;
+  signal jopdfetch	: std_logic;
 
-	signal jpaddr		: std_logic_vector(pc_width-1 downto 0);
+  signal jpaddr		: std_logic_vector(pc_width-1 downto 0);
 
-	signal opd			: std_logic_vector(15 downto 0);
-	signal jpc_out		: std_logic_vector(jpc_width downto 0);
-	signal instr		: std_logic_vector(i_width-1 downto 0);
-	signal ena_jpc		: std_logic;
+  signal opd			: std_logic_vector(15 downto 0);
+  signal jpc_out		: std_logic_vector(jpc_width downto 0);
+  signal instr		: std_logic_vector(i_width-1 downto 0);
+  signal ena_jpc		: std_logic;
 
 --
 -- stack connections
 --
-	signal dir			: std_logic_vector(ram_width-1 downto 0);
+  signal dir			: std_logic_vector(ram_width-1 downto 0);
 
-	signal sel_sub		: std_logic;						-- 0..add, 1..sub
-	signal sel_amux		: std_logic;						-- 0..sum, 1..lmux
-	signal ena_a		: std_logic;						-- 1..store new value
-	signal sel_bmux		: std_logic;						-- 0..a, 1..mem
-	signal sel_log		: std_logic_vector(1 downto 0);		-- ld, and, or, xor
-	signal sel_shf		: std_logic_vector(1 downto 0);		-- sr, sl, sra, (sr)
-	signal sel_lmux		: std_logic_vector(2 downto 0);		-- log, shl, mem, io, reg
-	signal sel_imux		: std_logic_vector(1 downto 0);		-- java opds
-	signal sel_rmux		: std_logic_vector(1 downto 0);		-- sp, vp, jpc
-	signal sel_smux		: std_logic_vector(1 downto 0);		-- sp, a, sp-1, sp+1
+  signal sel_sub		: std_logic;						-- 0..add, 1..sub
+  signal sel_amux		: std_logic;						-- 0..sum, 1..lmux
+  signal ena_a		: std_logic;						-- 1..store new value
+  signal sel_bmux		: std_logic;						-- 0..a, 1..mem
+  signal sel_log		: std_logic_vector(1 downto 0);		-- ld, and, or, xor
+  signal sel_shf		: std_logic_vector(1 downto 0);		-- sr, sl, sra, (sr)
+  signal sel_lmux		: std_logic_vector(2 downto 0);		-- log, shl, mem, io, reg
+  signal sel_imux		: std_logic_vector(1 downto 0);		-- java opds
+  signal sel_rmux		: std_logic_vector(1 downto 0);		-- sp, vp, jpc
+  signal sel_smux		: std_logic_vector(1 downto 0);		-- sp, a, sp-1, sp+1
 
-	signal sel_mmux		: std_logic;						-- 0..a, 1..b
-	signal sel_rda		: std_logic_vector(2 downto 0);		-- 
-	signal sel_wra		: std_logic_vector(2 downto 0);		-- 
+  signal sel_mmux		: std_logic;						-- 0..a, 1..b
+  signal sel_rda		: std_logic_vector(2 downto 0);		-- 
+  signal sel_wra		: std_logic_vector(2 downto 0);		-- 
 
-	signal wr_ena		: std_logic;
+  signal wr_ena		: std_logic;
 
-	signal ena_b		: std_logic;
-	signal ena_vp		: std_logic;
-	signal ena_ar		: std_logic;
+  signal ena_b		: std_logic;
+  signal ena_vp		: std_logic;
+  signal ena_ar		: std_logic;
 
-	signal stk_zf		: std_logic;
-	signal stk_nf		: std_logic;
-	signal stk_eq		: std_logic;
-	signal stk_lt		: std_logic;
-	signal stk_aout		: std_logic_vector(width-1 downto 0);
-	signal stk_bout		: std_logic_vector(width-1 downto 0);
+  signal stk_zf		: std_logic;
+  signal stk_nf		: std_logic;
+  signal stk_eq		: std_logic;
+  signal stk_lt		: std_logic;
+  signal stk_aout		: std_logic_vector(width-1 downto 0);
+  signal stk_bout		: std_logic_vector(width-1 downto 0);
+
+
+  -- Instrumentaion signal
+  signal ena_cyc : std_logic;
+  signal ena_hw :  std_logic;
+  signal hw: std_logic_vector(width-1 downto 0);
 
 begin
 
-	bcf: bcfetch generic map(jpc_width, pc_width)
-			port map (clk, reset, jpc_out, stk_aout, ena_jpc,
-			bc_wr_addr, bc_wr_data, bc_wr_ena,
-			jfetch, jopdfetch,
-			stk_zf, stk_nf, stk_eq, stk_lt, jbr,
-			irq_in, irq_out,
-			jpaddr, opd);
+  bcf: bcfetch generic map(jpc_width, pc_width)
+    port map (clk, reset, jpc_out, stk_aout, ena_jpc,
+              bc_wr_addr, bc_wr_data, bc_wr_ena,
+              jfetch, jopdfetch,
+              stk_zf, stk_nf, stk_eq, stk_lt, jbr,
+              irq_in, irq_out,
+              jpaddr, opd);
 
-	fch: fetch generic map (pc_width, i_width)
-		port map (clk, reset, jfetch, jopdfetch,
-			br, jmp, bsy, jpaddr, instr);
+  fch: fetch generic map (pc_width, i_width)
+    port map (clk, reset, jfetch, jopdfetch,
+              br, jmp, bsy, jpaddr, instr);
 
-	dec: decode generic map (i_width)
-		port map (clk, reset, instr, stk_zf, stk_nf, stk_eq, stk_lt,
-			opd,
-			br, jmp, jbr,
-			mem_in,
-			mmu_instr, mul_wr, wr_dly,
-			dir,
-			sel_sub, sel_amux, ena_a,
-			sel_bmux, sel_log, sel_shf, sel_lmux, sel_imux, sel_rmux, sel_smux,
-			sel_mmux, sel_rda, sel_wra,
-			wr_ena, ena_b, ena_vp, ena_jpc, ena_ar);
+  dec: decode generic map (i_width)
+    port map (clk, reset, instr, stk_zf, stk_nf, stk_eq, stk_lt,
+              opd,
+              br, jmp, jbr,
+              mem_in,
+              mmu_instr, mul_wr, wr_dly,
+              dir,
+              sel_sub, sel_amux, ena_a,
+              sel_bmux, sel_log, sel_shf, sel_lmux, sel_imux, sel_rmux, sel_smux,
+              sel_mmux, sel_rda, sel_wra,
+              wr_ena, ena_b, ena_vp, ena_jpc, ena_ar, ena_cyc, ena_hw);
 
-	stk: stack generic map (width, jpc_width)
-		port map (clk, reset, din, dir, opd, jpc_out,
-			sel_sub, sel_amux, ena_a,
-			sel_bmux, sel_log, sel_shf, sel_lmux, sel_imux, sel_rmux, sel_smux,
-			sel_mmux, sel_rda, sel_wra,
-			wr_ena, ena_b, ena_vp, ena_ar,
-			sp_ov,
-			stk_zf, stk_nf, stk_eq, stk_lt, stk_aout, stk_bout);
+  inst: instrument generic map (width)
+    port map (clk, reset, ena_cyc, ena_hw, stk_aout, ena_poc, ena_pmc, ena_pac, inst_state,
+              hw, fmc, mmc, foc, moc);
 
-	aout <= stk_aout;
-	bout <= stk_bout;
+  stk: stack generic map (width, jpc_width)
+    port map (clk, reset, hw, din, dir, opd, jpc_out,
+              sel_sub, sel_amux, ena_a,
+              sel_bmux, sel_log, sel_shf, sel_lmux, sel_imux, sel_rmux, sel_smux,
+              sel_mmux, sel_rda, sel_wra,
+              wr_ena, ena_b, ena_vp, ena_ar,
+              sp_ov,
+              stk_zf, stk_nf, stk_eq, stk_lt, stk_aout, stk_bout);
+
+  aout <= stk_aout;
+  bout <= stk_bout;
 
 end rtl;

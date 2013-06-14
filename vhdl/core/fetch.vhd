@@ -73,9 +73,9 @@ port (
 
 	nxt, opd	: out std_logic;	-- jfetch and jopdfetch from table
 
-	br			: in std_logic;
-	jmp			: in std_logic;
-	bsy			: in std_logic;		-- direct from the memory module
+	br		: in std_logic;
+	jmp		: in std_logic;
+	bsy		: in std_logic;		-- direct from the memory module
 	jpaddr		: in std_logic_vector(pc_width-1 downto 0);
 
 	dout		: out std_logic_vector(i_width-1 downto 0)		-- internal instruction (rom)

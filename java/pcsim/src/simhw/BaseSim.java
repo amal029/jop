@@ -111,7 +111,7 @@ public class BaseSim {
 		try {
 			flash.seek(pos);
 			int val = flash.read();
-// System.out.println("read "+pos+ " val "+val);
+			// System.out.println("read "+pos+ " val "+val);
 			return val;
 		} catch (IOException e) {
 			e.printStackTrace();

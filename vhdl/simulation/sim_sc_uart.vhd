@@ -113,10 +113,14 @@ begin
 		if address(0)='1' and wr='1' then
 			char <= wr_data(7 downto 0);	-- we use char for ModelSim display
 			write(l, character'val(to_integer(unsigned(wr_data(7 downto 0)))));
-			writeline(output, l);
+			if char = X"0D"  then
+				writeline(output, l);
+			end if;
 		end if;
+
 	end if;
 end process;
+
 
 
 end sim;

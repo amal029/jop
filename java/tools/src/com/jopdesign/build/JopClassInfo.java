@@ -762,9 +762,10 @@ public class JopClassInfo extends OldClassInfo implements Serializable {
 
         out.println("\t\t" + staticValueVarAddress
                 + ",\t//\tpointer to static primitive fields");
+	// AVINASH: Change this and also add a word to handle for greater than 32 fields!!
         if (instSize > 31) {
             System.err.println("Error: Object of " + clazz.getClassName()
-                    + " to big! Size=" + instSize);
+                    + " too big! Size=" + instSize);
             System.exit(-1);
         }
         out.println("\t\t" + instGCinfo + ",\t//\tinstance GC info");

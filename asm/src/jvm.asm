@@ -158,7 +158,7 @@
 //	gets written in RAM at position 64
 //	update it when changing .asm, .inc or .vhd files
 //
-version		= 20110107
+version		= 20130616
 
 //
 //	start of stack area in the on-chip RAM
@@ -846,7 +846,7 @@ iconst_4:	ldi 4 nxt
 iconst_5:	ldi 5 nxt
 
 bipush:		nop opd
-			ld_opd_8s nxt
+		ld_opd_8s nxt
 
 sipush:		nop opd
 			nop opd
@@ -892,7 +892,7 @@ iload_3:	ld3 nxt
 astore:
 fstore:
 istore:		nop opd
-			st nxt
+		st nxt
 
 astore_0:
 fstore_0:
@@ -910,7 +910,7 @@ istore_3:	st3 nxt
 
 pop:		pop nxt
 pop2:		pop
-			pop	nxt
+		pop	nxt
 dup:		dup nxt
 dup_x1:		stm	a
 			stm	b
@@ -1730,3 +1730,16 @@ jopsys_inval:
 			nop
 			nop
 			nop nxt
+
+// Assume that we always have aload_0 before this instruction
+jopsys_count:
+			cyc
+			pop nxt
+
+
+jopsys_hc:	ldcr
+	        stm a
+	        stm b
+	        ldm a
+	        ldm b
+	        pop nxt

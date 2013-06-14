@@ -1,6 +1,6 @@
 /*
   This file is part of JOP, the Java Optimized Processor
-    see <http://www.jopdesign.com/>
+  see <http://www.jopdesign.com/>
 
   Copyright (C) 2001-2008, Martin Schoeberl (martin@jopdesign.com)
 
@@ -34,493 +34,493 @@ package com.jopdesign.sys;
  */
 public class Startup {
 	
-	// use static vars, don't waste stack space
-	static int var;
-	/** Size of main memory in 32-bit words */
-	static int mem_size;
-	/** Size of scratchpad memory in 32-bit words */
-	static int spm_size;
+  // use static vars, don't waste stack space
+  static int var;
+  /** Size of main memory in 32-bit words */
+  static int mem_size;
+  /** Size of scratchpad memory in 32-bit words */
+  static int spm_size;
 
-	// a stack for the interpreter mode
-	static int[] stack;
-	final static int MAX_STACK = 100;
-	static int sp, pc, cp;
+  // a stack for the interpreter mode
+  static int[] stack;
+  final static int MAX_STACK = 100;
+  static int sp, pc, cp;
 	
-	/**
-	 * How needs this field, and why?
-	 */
-	static boolean started;
+  /**
+   * How needs this field, and why?
+   */
+  static boolean started;
 	
-	/**
-	 * The start method for CPU 1 to n-1.
-	 * 
-	 * Public just for a quick test.
-	 */
-	static Runnable[] cpuStart = new Runnable[Native.rdMem(Const.IO_CPUCNT)-1];
+  /**
+   * The start method for CPU 1 to n-1.
+   * 
+   * Public just for a quick test.
+   */
+  static Runnable[] cpuStart = new Runnable[Native.rdMem(Const.IO_CPUCNT)-1];
 	
-	/**
-	 * called from jvm.asm as first method.
-	 * Do all initialization here and call main method.
-	 */
-	static void boot() {
+  /**
+   * called from jvm.asm as first method.
+   * Do all initialization here and call main method.
+   */
+  static void boot() {
 		
-		// use local variable - statics are not CMP save!
-		int val;
+    // use local variable - statics are not CMP save!
+    int val;
 		
-		// disable all interrupts locally
-		// global enable and disable on monitorenter/exit don't hurt
-		Native.wr(0, Const.IO_INTMASK);
+    // disable all interrupts locally
+    // global enable and disable on monitorenter/exit don't hurt
+    Native.wr(0, Const.IO_INTMASK);
 		
-		// only CPU 0 does the initialization stuff
-		if (Native.rdMem(Const.IO_CPU_ID) == 0)	{
-			started = false;
+    // only CPU 0 does the initialization stuff
+    if (Native.rdMem(Const.IO_CPU_ID) == 0)	{
+      started = false;
 
-			msg();
-			spm_size = getRamSize(Const.SCRATCHPAD_ADDRESS);
-			mem_size = getRamSize(0);
-			// mem(0) is the length of the application
-			// or in other words the heap start
-			val = Native.rdMem(1);		// pointer to 'special' pointers
-			// first initialize the GC with the address of static ref. fields
-			GC.init(mem_size, val+4);
-			// place for some initialization:
-			// could be placed in <clinit> in the future
-//			System.init();
-			version();
-			started = true;
-			clazzinit();
-			// not in <clinit> as first methods are special and palcement
-			// of <clinit> depends on compiler
-			JVMHelp.init();
-		}
+      msg();
+      spm_size = getRamSize(Const.SCRATCHPAD_ADDRESS);
+      mem_size = getRamSize(0);
+      // mem(0) is the length of the application
+      // or in other words the heap start
+      val = Native.rdMem(1);		// pointer to 'special' pointers
+      // first initialize the GC with the address of static ref. fields
+      GC.init(mem_size, val+4);
+      // place for some initialization:
+      // could be placed in <clinit> in the future
+      //			System.init();
+      version();
+      started = true;
+      clazzinit();
+      // not in <clinit> as first methods are special and palcement
+      // of <clinit> depends on compiler
+      JVMHelp.init();
+    }
 		
-		// clear all pending interrupts (e.g. timer after reset)
-		Native.wr(1, Const.IO_INTCLEARALL);
-		// set global enable
-		Native.wr(1, Const.IO_INT_ENA);
+    // clear all pending interrupts (e.g. timer after reset)
+    Native.wr(1, Const.IO_INTCLEARALL);
+    // set global enable
+    Native.wr(1, Const.IO_INT_ENA);
 		
-		// reset any performance counter
-		Native.wr(-1, Const.IO_PERFCNT);
+    // reset any performance counter
+    Native.wr(-1, Const.IO_PERFCNT);
 		
-		// request CPU id
-		val = Native.rdMem(Const.IO_CPU_ID);
+    // request CPU id
+    val = Native.rdMem(Const.IO_CPU_ID);
 		
-		if (val==0) {
-			// only CPU 0 invokes main()
-			val = Native.rdMem(1);		// pointer to 'special' pointers
-			val = Native.rdMem(val+3);	// pointer to main method structure
-			Native.invoke(0, val);		// call main (with null pointer on TOS
-			exit();			
-		} else {
-			// other CPUs invoke a Runnable
-			if (cpuStart[val-1]!=null) {
-				cpuStart[val-1].run();
-			}
-			for (;;) {
-				;			// busy loop for other CPUs exit
-			}
-		}
-	}
+    if (val==0) {
+      // only CPU 0 invokes main()
+      val = Native.rdMem(1);		// pointer to 'special' pointers
+      val = Native.rdMem(val+3);	// pointer to main method structure
+      Native.invoke(0, val);		// call main (with null pointer on TOS
+      exit();			
+    } else {
+      // other CPUs invoke a Runnable
+      if (cpuStart[val-1]!=null) {
+	cpuStart[val-1].run();
+      }
+      for (;;) {
+	;			// busy loop for other CPUs exit
+      }
+    }
+  }
 	
 
-	static void msg() {
+  static void msg() {
 
-		JVMHelp.wr("JOP start");
+    JVMHelp.wr("Hello Master :-)");
 		
-	}
+  }
 	
-	/**
-	 * Add a Runnable for the other CPUs
-	 * @param r
-	 * @param index
-	 */
-	public static void setRunnable(Runnable r, int index) {
-		cpuStart[index] = r;
-	}
+  /**
+   * Add a Runnable for the other CPUs
+   * @param r
+   * @param index
+   */
+  public static void setRunnable(Runnable r, int index) {
+    cpuStart[index] = r;
+  }
 	
-	/**
-	 * @return RAM size in 32 bit words
-	 */
-	static int getRamSize(int offset) {
+  /**
+   * @return RAM size in 32 bit words
+   */
+  static int getRamSize(int offset) {
 
-		// change for DE2-70 VGA board
-		// int size = 0x0078500; // adresses for JOP - after this memory for vga
-		int size = 0;
-		int firstWord = Native.rd(offset+0);
-		int val;
-		// increment in 512 Bytes
-		for (size=0; ; size+=128) {
-			val = Native.rd(offset+size);
-			Native.wr(0xaaaa5555, offset+size);
-			if (Native.rd(offset+size)!=0xaaaa5555) break;
-			Native.wr(0x12345678, offset+size);
-			if (Native.rd(offset+size)!=0x12345678) break;
-			if (size!=0) {
-				// invalidate cache
-				Native.invalidate();
-				if (Native.rd(offset+0)!=firstWord) break;				
-			}
-			// restore current word
-			Native.wr(val, offset+size);
-		}
-		// restore the first word
-		Native.wr(firstWord, offset+0);
+    // change for DE2-70 VGA board
+    // int size = 0x0078500; // adresses for JOP - after this memory for vga
+    int size = 0;
+    int firstWord = Native.rd(offset+0);
+    int val;
+    // increment in 512 Bytes
+    for (size=0; ; size+=128) {
+      val = Native.rd(offset+size);
+      Native.wr(0xaaaa5555, offset+size);
+      if (Native.rd(offset+size)!=0xaaaa5555) break;
+      Native.wr(0x12345678, offset+size);
+      if (Native.rd(offset+size)!=0x12345678) break;
+      if (size!=0) {
+	// invalidate cache
+	Native.invalidate();
+	if (Native.rd(offset+0)!=firstWord) break;				
+      }
+      // restore current word
+      Native.wr(val, offset+size);
+    }
+    // restore the first word
+    Native.wr(firstWord, offset+0);
 
-		return size;
-	}
+    return size;
+  }
 	
 	
-	/**
-	 * @return Processor speed in MHz
-	 */
-	static int getSpeed() {
+  /**
+   * @return Processor speed in MHz
+   */
+  static int getSpeed() {
 		
-		int start=0, end=0;
-		int val = Native.rd(Const.IO_US_CNT) + 5;
+    int start=0, end=0;
+    int val = Native.rd(Const.IO_US_CNT) + 5;
 		
-		while (Native.rd(Const.IO_US_CNT)-val<0) {
-			;
-		}
-		start = Native.rd(Const.IO_CNT);
-		val += 32;	// wait 32 us
-		while (Native.rd(Const.IO_US_CNT)-val<0) {
-			;
-		}
-		end = Native.rd(Const.IO_CNT);
+    while (Native.rd(Const.IO_US_CNT)-val<0) {
+      ;
+    }
+    start = Native.rd(Const.IO_CNT);
+    val += 32;	// wait 32 us
+    while (Native.rd(Const.IO_US_CNT)-val<0) {
+      ;
+    }
+    end = Native.rd(Const.IO_CNT);
 		
-		// round and divide by 32
-		return (end-start+16)>>5;
-	}
+    // round and divide by 32
+    return (end-start+16)>>5;
+  }
 	
-	static void version() {
+  static void version() {
 
-		// BTW: why not using System.out.println()?
-		int version = Native.rdIntMem(64-2);
-		if (version==0x12345678) {
-			// not in the new location, try the old one
-			version = Native.rdIntMem(64);
-		}
-		JVMHelp.wr(" V ");
-		// take care with future GC - JVMHelp.intVal allocates
-		// a buffer!
-		if (version==0x12345678) {
-			JVMHelp.wr("pre2005");
-		} else {
-			JVMHelp.intVal(version);
-		}
-		JVMHelp.wr("\r\n");
-		int speed = getSpeed();
-		JVMHelp.intVal(speed);
-		JVMHelp.wr("MHz, ");
-		JVMHelp.intVal(mem_size/1024*4);
-		JVMHelp.wr("KB RAM");
-		if (spm_size!=0) {
-			JVMHelp.wr(", ");
-			JVMHelp.intVal(spm_size*4);
-			JVMHelp.wr("Byte on-chip RAM");
-		}
-		JVMHelp.wr(", ");
-		JVMHelp.intVal(Native.rdMem(Const.IO_CPUCNT));
-		JVMHelp.wr("CPUs");
-		JVMHelp.wr("\r\n");
-	}
+    // BTW: why not using System.out.println()?
+    int version = Native.rdIntMem(64-2);
+    if (version==0x12345678) {
+      // not in the new location, try the old one
+      version = Native.rdIntMem(64);
+    }
+    JVMHelp.wr(" V ");
+    // take care with future GC - JVMHelp.intVal allocates
+    // a buffer!
+    if (version==0x12345678) {
+      JVMHelp.wr("pre2005");
+    } else {
+      JVMHelp.intVal(version);
+    }
+    JVMHelp.wr("\r\n");
+    int speed = getSpeed();
+    JVMHelp.intVal(speed);
+    JVMHelp.wr("MHz, ");
+    JVMHelp.intVal(mem_size/1024*4);
+    JVMHelp.wr("KB RAM");
+    if (spm_size!=0) {
+      JVMHelp.wr(", ");
+      JVMHelp.intVal(spm_size*4);
+      JVMHelp.wr("Byte on-chip RAM");
+    }
+    JVMHelp.wr(", ");
+    JVMHelp.intVal(Native.rdMem(Const.IO_CPUCNT));
+    JVMHelp.wr("CPUs");
+    JVMHelp.wr("\r\n");
+  }
 
-	public static void exit() {
+  public static void exit() {
 		
-		for (;RtThreadImpl.mission;) {
-			RtThreadImpl.sleepMs(1000);
-		}
-		JVMHelp.wr("\r\nJVM exit!\r\n");
-		synchronized (stack) {
-			for (;;) ;
-		}
-	}
+    for (;RtThreadImpl.mission;) {
+      RtThreadImpl.sleepMs(1000);
+    }
+    JVMHelp.wr("\r\nJVM exit!\r\n");
+    synchronized (stack) {
+      for (;;) ;
+    }
+  }
 	
-	public static int getSPMSize() {
-		return spm_size*4;
-	}
-	static void clazzinit() {
+  public static int getSPMSize() {
+    return spm_size*4;
+  }
+  static void clazzinit() {
 
-		stack = new int[MAX_STACK];
+    stack = new int[MAX_STACK];
 
-		int table = Native.rdMem(1)+6;		// start of clinit table
-		int cnt = Native.rdMem(table);		// number of methods
-		++table;
-		for (int i=0; i<cnt; ++i) {
-			int addr = Native.rdMem(table+i);
-//			System.out.print("<clinit> ");
-//			System.out.println(addr);
-			// reuse static var for 
-			var = Native.rdMem(addr);
-			int len = var & 0x03ff;
-			var >>>= 10;
-			cp = Native.rdMem(addr+1);
-			// int locals = (cp>>>5) & 0x01f;
-			// int args = cp & 0x01f;
-			cp >>>= 10;
-//			System.out.print("start=");
-//			System.out.println(var);
-//			System.out.println("len=");
-//			System.out.println(len);
-			if (len<256 && len!=0) {	// see JOPizer constant on max. method length
-				Native.invoke(addr);
-			// len=0 means interpret it
-			} else {
-				interpret();				
-			}
-		}
-	}
+    int table = Native.rdMem(1)+6;		// start of clinit table
+    int cnt = Native.rdMem(table);		// number of methods
+    ++table;
+    for (int i=0; i<cnt; ++i) {
+      int addr = Native.rdMem(table+i);
+      //			System.out.print("<clinit> ");
+      //			System.out.println(addr);
+      // reuse static var for 
+      var = Native.rdMem(addr);
+      int len = var & 0x03ff;
+      var >>>= 10;
+      cp = Native.rdMem(addr+1);
+      // int locals = (cp>>>5) & 0x01f;
+      // int args = cp & 0x01f;
+      cp >>>= 10;
+      //			System.out.print("start=");
+      //			System.out.println(var);
+      //			System.out.println("len=");
+      //			System.out.println(len);
+      if (len<256 && len!=0) {	// see JOPizer constant on max. method length
+	Native.invoke(addr);
+	// len=0 means interpret it
+      } else {
+	interpret();				
+      }
+    }
+  }
 
 
-	// start address is in var
-	static void interpret() {
+  // start address is in var
+  static void interpret() {
 
-		pc = 0;
-		sp = 0;
-		int instr, val, idx;
+    pc = 0;
+    sp = 0;
+    int instr, val, idx;
 
-		for (;;) {
+    for (;;) {
 
-//			System.out.print(pc);
-			instr = readBC8u();
-//			System.out.print(" ");
-//			System.out.println(instr);
+      //			System.out.print(pc);
+      instr = readBC8u();
+      //			System.out.print(" ");
+      //			System.out.println(instr);
 
-			switch (instr) {
+      switch (instr) {
 				
-				case 0 :		// nop
-					break;
-				case 1 :		// aconst_null
-					stack[++sp] = 0;
-					break;
-				case 2 :		// iconst_m1
-					stack[++sp] = -1;
-					break;
-				case 3 :		// iconst_0
-					stack[++sp] = 0;
-					break;
-				case 4 :		// iconst_1
-					stack[++sp] = 1;
-					break;
-				case 5 :		// iconst_2
-					stack[++sp] = 2;
-					break;
-				case 6 :		// iconst_3
-					stack[++sp] = 3;
-					break;
-				case 7 :		// iconst_4
-					stack[++sp] = 4;
-					break;
-				case 8 :		// iconst_5
-					stack[++sp] = 5;
-					break;
-				case 9 :		// lconst_0
-					stack[++sp] = 0;
-					stack[++sp] = 0;
-					break;
-				case 10 :		// lconst_1
-					stack[++sp] = 0;
-					stack[++sp] = 1;
-					break;
-				case 11 :		// fconst_0
-					stack[++sp] = 0;
-					break;
-				case 12 :		// fconst_1
-					stack[++sp] = 0x3f800000;
-					break;
-				case 13 :		// fconst_2
-					stack[++sp] = 0x40000000;
-					break;
-				case 14 :		// dconst_0
-					stack[++sp] = 0;
-					stack[++sp] = 0;
-					break;
-				case 15 :		// dconst_1
-					stack[++sp] = 0x3ff00000;
-					stack[++sp] = 0x00000000;
-					break;
-				case 16 :		// bipush
-					stack[++sp] = readBC8s();
-					break;
-				case 17 :		// sipush
-					stack[++sp] = readBC16s();
-					break;
-				case 18 :		// ldc
-					stack[++sp] = Native.rdMem(cp+readBC8u());
-					break;
-				case 19 :		// ldc_w
-					stack[++sp] = Native.rdMem(cp+readBC16u());
-					break;
-				case 20 :		// ldc2_w
-					idx = readBC16u();
-					stack[++sp] = Native.rdMem(cp+idx);
-					stack[++sp] = Native.rdMem(cp+idx+1);
-					break;
-				case 83 :		// aastore
-				case 84 :		// bastore
-				case 85 :		// castore
-				case 81 :		// fastore
-				case 79 :		// iastore
-				case 86 :		// sastore
-					xastore();
-					break;
-				case 80 :		// lastore
-				case 82 :		// dastore
-					x2astore();
-					break;
-				case 89 :		// dup
-					val = stack[sp];
-					stack[++sp] = val;
-					break;
-				case 177 :		// return
-					return;
-				case 178 :		// getstatic
-			    case 224 :      // getstatic_ref
-					getstatic();
-					break;
-				case 179 :		// putstatic
-				case 225 :		// putstatic_ref, no concurrent GC during <clinit>!
-					putstatic();
-					break;
-// GETFIELD/PUTFIELD does not make sense without NEW
-// 				case 180 :		// getfield
-// 					getfield();
-// 					break;
-// 				case 181 :		// putfield
-// 				case 227 :		// putfield_ref, no concurrent GC during <clinit>!
-// 					putfield();
-// 					break;
-// NEW does not make sense without INVOKESPECIAL
-// 				case 187 :		// new
-// 					newobj();
-// 					break;
-				case 188 :		// newarray
-					newarray();
-					break;
-				case 189 :		// anewarray
-					anewarray();
-					break;
-			    case 190 :      // arraylength
-					arraylength();
-					break;
-				case 221 :		// jopsys_nop
-					break;
-				default:
-					System.out.print("JVM interpreter: bytecode ");
-					System.out.print(instr);
-					System.out.println(" not implemented");
-					for (;;);
+      case 0 :		// nop
+	break;
+      case 1 :		// aconst_null
+	stack[++sp] = 0;
+	break;
+      case 2 :		// iconst_m1
+	stack[++sp] = -1;
+	break;
+      case 3 :		// iconst_0
+	stack[++sp] = 0;
+	break;
+      case 4 :		// iconst_1
+	stack[++sp] = 1;
+	break;
+      case 5 :		// iconst_2
+	stack[++sp] = 2;
+	break;
+      case 6 :		// iconst_3
+	stack[++sp] = 3;
+	break;
+      case 7 :		// iconst_4
+	stack[++sp] = 4;
+	break;
+      case 8 :		// iconst_5
+	stack[++sp] = 5;
+	break;
+      case 9 :		// lconst_0
+	stack[++sp] = 0;
+	stack[++sp] = 0;
+	break;
+      case 10 :		// lconst_1
+	stack[++sp] = 0;
+	stack[++sp] = 1;
+	break;
+      case 11 :		// fconst_0
+	stack[++sp] = 0;
+	break;
+      case 12 :		// fconst_1
+	stack[++sp] = 0x3f800000;
+	break;
+      case 13 :		// fconst_2
+	stack[++sp] = 0x40000000;
+	break;
+      case 14 :		// dconst_0
+	stack[++sp] = 0;
+	stack[++sp] = 0;
+	break;
+      case 15 :		// dconst_1
+	stack[++sp] = 0x3ff00000;
+	stack[++sp] = 0x00000000;
+	break;
+      case 16 :		// bipush
+	stack[++sp] = readBC8s();
+	break;
+      case 17 :		// sipush
+	stack[++sp] = readBC16s();
+	break;
+      case 18 :		// ldc
+	stack[++sp] = Native.rdMem(cp+readBC8u());
+	break;
+      case 19 :		// ldc_w
+	stack[++sp] = Native.rdMem(cp+readBC16u());
+	break;
+      case 20 :		// ldc2_w
+	idx = readBC16u();
+	stack[++sp] = Native.rdMem(cp+idx);
+	stack[++sp] = Native.rdMem(cp+idx+1);
+	break;
+      case 83 :		// aastore
+      case 84 :		// bastore
+      case 85 :		// castore
+      case 81 :		// fastore
+      case 79 :		// iastore
+      case 86 :		// sastore
+	xastore();
+	break;
+      case 80 :		// lastore
+      case 82 :		// dastore
+	x2astore();
+	break;
+      case 89 :		// dup
+	val = stack[sp];
+	stack[++sp] = val;
+	break;
+      case 177 :		// return
+	return;
+      case 178 :		// getstatic
+      case 224 :      // getstatic_ref
+	getstatic();
+	break;
+      case 179 :		// putstatic
+      case 225 :		// putstatic_ref, no concurrent GC during <clinit>!
+	putstatic();
+	break;
+	// GETFIELD/PUTFIELD does not make sense without NEW
+	// 				case 180 :		// getfield
+	// 					getfield();
+	// 					break;
+	// 				case 181 :		// putfield
+	// 				case 227 :		// putfield_ref, no concurrent GC during <clinit>!
+	// 					putfield();
+	// 					break;
+	// NEW does not make sense without INVOKESPECIAL
+	// 				case 187 :		// new
+	// 					newobj();
+	// 					break;
+      case 188 :		// newarray
+	newarray();
+	break;
+      case 189 :		// anewarray
+	anewarray();
+	break;
+      case 190 :      // arraylength
+	arraylength();
+	break;
+      case 221 :		// jopsys_nop
+	break;
+      default:
+	System.out.print("JVM interpreter: bytecode ");
+	System.out.print(instr);
+	System.out.println(" not implemented");
+	for (;;);
 
-			}
-		}
+      }
+    }
 
-	}
+  }
 
-	static int readBC8u() {
+  static int readBC8u() {
 
-		int val = Native.rdMem(var + (pc>>2));
-		val >>= (3-(pc&0x03))<<3;
-		val &= 0xff;
-		++pc;
-		return val;
-	}
+    int val = Native.rdMem(var + (pc>>2));
+    val >>= (3-(pc&0x03))<<3;
+    val &= 0xff;
+    ++pc;
+    return val;
+  }
 
-	static byte readBC8s() {
+  static byte readBC8s() {
 
-		int val = Native.rdMem(var + (pc>>2));
-		val >>= (3-(pc&0x03))<<3;
-		++pc;
-		return (byte) val;
-	}
+    int val = Native.rdMem(var + (pc>>2));
+    val >>= (3-(pc&0x03))<<3;
+    ++pc;
+    return (byte) val;
+  }
 
-	static short readBC16s() {
+  static short readBC16s() {
 
-		short val = readBC8s();
-		val <<= 8;
-		val |= readBC8s() & 0x0ff;
-		return val;
-	}
+    short val = readBC8s();
+    val <<= 8;
+    val |= readBC8s() & 0x0ff;
+    return val;
+  }
 
-	static int readBC16u() {
+  static int readBC16u() {
 
-		int idx = readBC16s();
-		return idx & 0xffff;
-	}
+    int idx = readBC16s();
+    return idx & 0xffff;
+  }
 
-	static void xastore() {
-		int val = stack[sp--];	// value
-		int idx = stack[sp--];	// index
-		int ref = stack[sp--];	// ref
-		// handle:
-		ref = Native.rdMem(ref);
-		Native.wrMem(val, ref+idx);
-	}
+  static void xastore() {
+    int val = stack[sp--];	// value
+    int idx = stack[sp--];	// index
+    int ref = stack[sp--];	// ref
+    // handle:
+    ref = Native.rdMem(ref);
+    Native.wrMem(val, ref+idx);
+  }
 
-	static void x2astore() {
-		int val = stack[sp--];	// value
-		int val2 = stack[sp--];	// value2
-		int idx = stack[sp--] << 1;	// index
-		int ref = stack[sp--];	// ref
-		// handle:
-		ref = Native.rdMem(ref);
-		Native.wrMem(val2, ref+idx);
-		Native.wrMem(val, ref+idx+1);
-	}
+  static void x2astore() {
+    int val = stack[sp--];	// value
+    int val2 = stack[sp--];	// value2
+    int idx = stack[sp--] << 1;	// index
+    int ref = stack[sp--];	// ref
+    // handle:
+    ref = Native.rdMem(ref);
+    Native.wrMem(val2, ref+idx);
+    Native.wrMem(val, ref+idx+1);
+  }
 
-	static void putstatic() {
+  static void putstatic() {
 
-		int addr = readBC16u();
-		Native.putStatic(stack[sp--], addr);
-	}
+    int addr = readBC16u();
+    Native.putStatic(stack[sp--], addr);
+  }
 
-	static void getstatic() {
+  static void getstatic() {
 
-		int addr = readBC16u();
-		stack[++sp] = Native.getStatic(addr);
-	}
+    int addr = readBC16u();
+    stack[++sp] = Native.getStatic(addr);
+  }
 
-	static void putfield() {
+  static void putfield() {
 
-		int off = readBC16u();
-		int val = stack[sp--];
-		int ref = stack[sp--];
+    int off = readBC16u();
+    int val = stack[sp--];
+    int ref = stack[sp--];
 
-		Native.putField(ref, off, val);
-	}
+    Native.putField(ref, off, val);
+  }
 
-	static void getfield() {
+  static void getfield() {
 
-		int off = readBC16u();
-		int ref = stack[sp];
+    int off = readBC16u();
+    int ref = stack[sp];
 
-		stack[sp] = Native.getField(ref, off);
-	}
+    stack[sp] = Native.getField(ref, off);
+  }
 
-	static void newobj() {
+  static void newobj() {
 
-		int type = readBC16u();			// use typ
-		stack[++sp] = JVM.f_new(type);
-	}
+    int type = readBC16u();			// use typ
+    stack[++sp] = JVM.f_new(type);
+  }
 
-	static void newarray() {
+  static void newarray() {
 
-		int type = readBC8u();			// use typ
-		int val = stack[sp];			// count from stack
-		stack[sp] = JVM.f_newarray(val, type);
-	}
+    int type = readBC8u();			// use typ
+    int val = stack[sp];			// count from stack
+    stack[sp] = JVM.f_newarray(val, type);
+  }
 	
-	static void anewarray() {
+  static void anewarray() {
 		
-		int cons = readBC16u();
-		int val = stack[sp];			// count from stack
-		stack[sp] = JVM.f_anewarray(val, cons);
+    int cons = readBC16u();
+    int val = stack[sp];			// count from stack
+    stack[sp] = JVM.f_anewarray(val, cons);
 		
-	}
+  }
 
-	static void arraylength() {
+  static void arraylength() {
 		
-		int ref = stack[sp];
+    int ref = stack[sp];
 
-		stack[sp] = Native.arrayLength(ref);
-	}
+    stack[sp] = Native.arrayLength(ref);
+  }
 }

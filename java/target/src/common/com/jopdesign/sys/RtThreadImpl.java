@@ -114,16 +114,9 @@ public class RtThreadImpl {
 	int sp;
 	
 	/**
-	 * The scope that the thread is in.
-	 * Set to initArea when started.
+	 * The scope that the thread is in. null when in heap context.
 	 */
-	Memory currentArea = null;
-	
-	/**
-	 * The scope for the the initial thread (and between missions).
-	 * Null until the Memory object that represents immortal is created.
-	 */
-	static Memory initArea;
+	Scope currentArrea;
 
 	// linked list of threads in priority order
 	// used only at initialization time to collect the threads
@@ -164,6 +157,7 @@ public class RtThreadImpl {
 	}
 
 	public RtThreadImpl(RtThread rtt, int prio, int us, int off) {
+
 		if (!initDone) {
 			init();
 		}
@@ -233,9 +227,6 @@ for (int i=0; i<Const.STACK_SIZE-Const.STACK_OFF; ++i) {
 			state = WAITING;
 		}
 
-		// set memory context to the current one
-		currentArea = initArea;
-		
 		createStack();
 
 		// new thread starts right here after first scheduled
@@ -541,15 +532,12 @@ for (int i=0; i<Const.STACK_SIZE-Const.STACK_OFF; ++i) {
 		return s.ref[s.active].rtt;
 	}
 	
-	static Memory getCurrentScope() {
+	static Scope getCurrentScope() {
 		
 //		JVMHelp.wr("getCurrent");
 		// we call it only when the mission is already started
 		Scheduler s = Scheduler.sched[sys.cpuId];
-		return s.ref[s.active].currentArea;
-		
-		// but we could use that in general to encapsulate
-		// scope set/get into this class
+		return s.ref[s.active].currentArrea;
 
 //		RtThreadImpl rtt = null;
 //		if (Scheduler.sched==null) {
@@ -568,15 +556,15 @@ for (int i=0; i<Const.STACK_SIZE-Const.STACK_OFF; ++i) {
 //		}
 	}
 	
-//	static void setCurrentScope(Scope sc) {
-//		RtThreadImpl rtt = null;
-//		Scheduler s = Scheduler.sched[sys.cpuId];
-//		if (s!=null || s.ref!=null) {
-//			int nr = s.active;
-//			rtt = s.ref[nr];
-//		}
-//		rtt.currentArrea = sc;
-//	}
+	static void setCurrentScope(Scope sc) {
+		RtThreadImpl rtt = null;
+		Scheduler s = Scheduler.sched[sys.cpuId];
+		if (s!=null || s.ref!=null) {
+			int nr = s.active;
+			rtt = s.ref[nr];
+		}
+		rtt.currentArrea = sc;
+	}
 
 	
 

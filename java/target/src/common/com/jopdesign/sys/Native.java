@@ -117,4 +117,17 @@ public class Native {
 	public static native int arrayLength(int ref);
 	
 
+	/**
+	 * Instrumenting hardware counts and debugging
+	 * @param mask
+	 * @return
+	 */
+	public static native void count (int mask);
+
+	/**
+	 * Instrumenting hardware counts and debugging
+	 * @param mask
+	 * @return hardware counter value
+	 */
+	public static native int hc(int mask);
 }

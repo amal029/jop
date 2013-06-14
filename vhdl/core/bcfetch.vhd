@@ -67,7 +67,7 @@ port (
 	clk, reset	: in std_logic;
 
 	jpc_out		: out std_logic_vector(jpc_width downto 0);	-- jpc read
-	din			: in std_logic_vector(31 downto 0);			-- A from stack
+	din		: in std_logic_vector(31 downto 0);		-- A from stack
 	jpc_wr		: in std_logic;
 
 --	connection to mmu
@@ -88,7 +88,7 @@ port (
 	irq_out		: out irq_ack_type;
 
 	jpaddr		: out std_logic_vector(pc_width-1 downto 0);	-- address for JVM
-	opd			: out std_logic_vector(15 downto 0)				-- operands
+	opd		: out std_logic_vector(15 downto 0)		-- operands
 );
 end bcfetch;
 
@@ -139,7 +139,7 @@ end component;
 	signal jbc_mux	: std_logic_vector(jpc_width downto 0);
 	signal jbc_q	: std_logic_vector(7 downto 0);
 
-	signal jpc		: std_logic_vector(jpc_width downto 0);
+	signal jpc	: std_logic_vector(jpc_width downto 0);
 	signal jpc_br	: std_logic_vector(jpc_width downto 0);
 	signal jmp_addr	: std_logic_vector(jpc_width downto 0);
 

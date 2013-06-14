@@ -100,7 +100,7 @@ public class JopInstr{
 
 	private static JopInstr[] ia = new JopInstr[] 
 	{
-		new JopInstr("nop", 1, IMP_ASM, 1),			// 0x00
+		new JopInstr("nop", 1, IMP_ASM, 1),		// 0x00
 		new JopInstr("aconst_null", 1, IMP_ASM, 1),	// 0x01
 		new JopInstr("iconst_m1", 1, IMP_ASM, 1),	// 0x02
 		new JopInstr("iconst_0", 1, IMP_ASM, 1),		// 0x03
@@ -377,8 +377,8 @@ public class JopInstr{
 
 		new JopInstr("sys_int", 1, IMP_ASM, 1),			// 0xF0
 		new JopInstr("sys_exc", 1, IMP_ASM, 1),			// 0xF1
-		new JopInstr("resF2", 1, IMP_NO, 1),			// 0xF2
-		new JopInstr("resF3", 1, IMP_NO, 1),			// 0xF3
+		new JopInstr("jopsys_count", 1, IMP_ASM, 1),		// 0xF2
+		new JopInstr("jopsys_hc", 1, IMP_ASM, 1),		// 0xF3
 		new JopInstr("resF4", 1, IMP_NO, 1),			// 0xF4
 		new JopInstr("resF5", 1, IMP_NO, 1),			// 0xF5
 		new JopInstr("resF6", 1, IMP_NO, 1),			// 0xF6
@@ -433,6 +433,8 @@ public class JopInstr{
 			"getField", "jopsys_getfield",
 			"arrayLoad", "iaload",
 			"arrayStore", "iastore",
+			"count", "jopsys_count",
+			"hc", "jopsys_hc",
 			"arrayLength", "arraylength"
 	};
 	static {

@@ -208,6 +208,10 @@ public class Const {
 	public static final int MSK_UA_TDRE = 1;
 	public static final int MSK_UA_RDRF = 2;
 	
+	public static final int DPCR_ADDR = IO_BASE+0x60;
+	public static final int RESULT_ADDR = IO_BASE+0x70;
+	
+	
 	// LED & SWITCH on DE2
 	public static final int LS_BASE = IO_BASE+0x40;
 	

@@ -167,6 +167,9 @@ public class Vector {
 		elementData[elementCount++] = obj;
 	}
 
+	public synchronized void add(Object obj) {
+	  addElement(obj);
+	}
 	/**
 	 * Returns the size of the internal data array (not the amount of elements
 	 * contained in the Vector).
@@ -222,6 +225,9 @@ public class Vector {
 		return elementData[index];
 	}
 
+	public Object get(int index) {
+	  return elementAt (index);
+	}
 	/**
 	 * Returns an Enumeration of the elements of this Vector. The enumeration
 	 * visits the elements in increasing index order, but is NOT thread-safe.

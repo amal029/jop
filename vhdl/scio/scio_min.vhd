@@ -109,6 +109,7 @@ architecture rtl of scio is
 	constant SLAVE_CNT : integer := 3;
 	-- SLAVE_CNT <= 2**DECODE_BITS
 	-- take care of USB address 0x20!
+        -- AVINASH FUCKED THIS UP!!
 	constant DECODE_BITS : integer := 2;
 	-- number of bits that can be used inside the slave
 	constant SLAVE_ADDR_BITS : integer := 4;

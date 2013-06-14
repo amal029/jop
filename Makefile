@@ -56,7 +56,7 @@ QPROJ=cycmin cycbaseio cycbg dspio lego cycfpu cyc256x16 sopcmin usbmin cyccmp d
 ifeq ($(USB),true)
 	QPROJ=usbmin
 else
-	QPROJ=altde2-70
+	QPROJ=altde2-70cache
 endif
 
 #
@@ -132,9 +132,9 @@ ADD_REF_INFO=false
 MEASURE=true
 JOP_CONF_STR=USE_SCOPES=$(USE_SCOPES) USE_SCOPECHECKS=$(USE_SCOPECHECKS) ADD_REF_INFO=$(ADD_REF_INFO) MEASURE=$(MEASURE)
 
-P1=test
-P2=test
-P3=HelloWorld
+P1=sysjex
+P2=sysjex
+P3=$(SYSJFILE)
 
 #
 # Run JVM Tests
@@ -207,6 +207,8 @@ TARGET_SRC_PATH=$(TARGET)/src
 #TOOLS_CP=-classpath $(EXT_CP)$(S)$(TOOLS)/dist/lib/jop-tools.jar
 TOOLS_CP=-classpath $(TOOLS)/dist/lib/jop-tools.jar$(S)$(TOOLS)/dist/lib/JopDebugger.jar$(S)$(EXT_CP)
 
+SYSJRTESRC ?= systemj
+
 ifeq ($(CLDC11),true)
 	TARGET_SOURCE=$(TARGET_SRC_PATH)/common$(S)$(TARGET_SRC_PATH)/cldc11/cldc_orig$(S)$(TARGET_SRC_PATH)/cldc11/cldc_mod$(S)$(TARGET_SRC_PATH)/cldc11/jdk_base_orig$(S)$(TARGET_SRC_PATH)/cldc11/jdk_base_mod$(S)$(TARGET_SRC_PATH)/rtapi$(S)$(TARGET_APP_SOURCE_PATH)
 else
@@ -216,7 +218,11 @@ else
 	TARGET_SOURCE=$(TARGET_SRC_PATH)/common$(S)$(TARGET_SRC_PATH)/jdk_base$(S)$(TARGET_SRC_PATH)/jdk11$(S)$(TARGET_SRC_PATH)/rtapi$(S)$(TARGET_APP_SOURCE_PATH)
 endif
 endif
-TARGET_JFLAGS=-d $(TARGET)/dist/classes -sourcepath $(TARGET_SOURCE) -bootclasspath "" -extdirs "" -classpath "" -source 1.5 -target 1.5 -encoding Latin1
+TARGET_JFLAGS=-d $(TARGET)/dist/classes -sourcepath $(TARGET_SOURCE)$(S)$(TARGET_SRC_PATH)/$(SYSJRTESRC) -bootclasspath "" -extdirs "" \
+	-classpath "" -source 1.5 -target 1.5 -encoding Latin1
+ifeq ($(SYSTEMJ),yes)
+	TARGET_JFLAGS += -classpath $(TARGET)/dist/classes
+endif
 GCC_PARAMS=
 
 # uncomment this to use RTTM
@@ -430,6 +436,24 @@ endif
 ifeq ($(USE_RTTM),yes)	
 	javac $(TARGET_JFLAGS) $(TARGET_SRC_PATH)/common/rttm/internal/Utils.java
 endif
+
+ifeq ($(SYSTEMJ),yes)
+ifeq ($(P3),pp)
+	javac $(TARGET_JFLAGS) $(TARGET_SRC_PATH)/Asproto/*.java
+endif
+ifeq ($(P3),sc)
+	javac $(TARGET_JFLAGS) $(TARGET_SRC_PATH)/scPackage/*.java
+endif
+ifeq ($(P3),frey)
+	javac $(TARGET_JFLAGS) $(TARGET_SRC_PATH)/Frq/*.java
+endif
+ifeq ($(P3),async_abro)
+	javac $(TARGET_JFLAGS) $(TARGET_SRC_PATH)/fibonacci/*.java
+	javac $(TARGET_JFLAGS) $(TARGET_SRC_PATH)/buffer/*.java
+endif
+	javac $(TARGET_JFLAGS) $(TARGET_SRC_PATH)/$(SYSJRTESRC)/**/**/*.java
+	javac $(TARGET_JFLAGS) $(TARGET_SRC_PATH)/$(SYSJRTESRC)/**/*.java
+endif
 	javac $(TARGET_JFLAGS) $(TARGET_APP)
 # WCETPreprocess, overwrite existing class files 
 	java $(DEBUG_JOPIZER) $(TOOLS_CP) com.jopdesign.wcet.WCETPreprocess \
@@ -575,7 +599,7 @@ sim_iic: java_app
 #		use -Dcpucnt=# for a CMP simulation
 #
 jsim: java_app
-	java $(DEBUG_JOPSIM) -cp java/tools/dist/lib/jop-tools.jar -Dlog="false" \
+	java $(DEBUG_JOPSIM) -cp java/tools/dist/lib/jop-tools.jar -Dlog="true" \
 	com.jopdesign.tools.JopSim java/target/dist/bin/$(JOPBIN)
 
 #
@@ -628,7 +652,7 @@ dcsim: java_app
 #
 jsim_server: java_app
 	java $(DEBUG_JOPSIM) \
-	-cp java/tools/dist/lib/jop-tools.jar$(S)$(TOOLS)/dist/lib/JopDebugger.jar -Dlog="false" \
+	-cp java/tools/dist/lib/jop-tools.jar$(S)$(TOOLS)/dist/lib/JopDebugger.jar -Dlog="true" \
 	com.jopdesign.debug.jdwp.jop.JopServer java/target/dist/bin/$(JOPBIN)
 
 

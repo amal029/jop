@@ -54,6 +54,7 @@ use ieee.numeric_std.all;
 
 use work.jop_types.all;
 use work.sc_pack.all;
+use work.jop_config_global.all;
 
 
 entity jopcpu is
@@ -104,7 +105,7 @@ architecture rtl of jopcpu is
 	signal stack_tos		: std_logic_vector(31 downto 0);
 	signal stack_nos		: std_logic_vector(31 downto 0);
 	signal rd, wr			: std_logic;
-	signal mmu_instr			: std_logic_vector(MMU_WIDTH-1 downto 0);
+	signal mmu_instr		: std_logic_vector(MMU_WIDTH-1 downto 0);
 	signal stack_din		: std_logic_vector(31 downto 0);
 
 -- extension/mem interface
@@ -129,8 +130,8 @@ architecture rtl of jopcpu is
 
 	signal bsy				: std_logic;
 
-	signal bc_wr_addr		: std_logic_vector(jpc_width-3 downto 0);	-- address for jbc (in words!)
-	signal bc_wr_data		: std_logic_vector(31 downto 0);	-- write data for jbc
+	signal bc_wr_addr		: std_logic_vector(jpc_width-3 downto 0);-- address for jbc (in words!)
+	signal bc_wr_data		: std_logic_vector(31 downto 0);-- write data for jbc
 	signal bc_wr_ena		: std_logic;
 
 -- SimpCon io interface
@@ -150,6 +151,14 @@ architecture rtl of jopcpu is
 
 	signal exr					: std_logic_vector(31 downto 0); 	-- extension data register
 
+        -- Signals for instrumentation
+
+        signal ena_poc,ena_pmc,ena_pac:    std_logic;
+        signal inst_state: std_logic_vector (CD_NUM+1 downto 0);
+        signal fmc: std_logic_vector (31 downto 0); -- The input from method cache (finds)
+        signal mmc: std_logic_vector (31 downto 0); -- The input from method cache (misses)
+        signal foc: std_logic_vector (31 downto 0); -- The input from object cache (finds)
+        signal moc: std_logic_vector (31 downto 0); -- The input from object cache (misses)
 
 begin
 
@@ -177,7 +186,15 @@ begin
 			irq_out => irq_out,
 			sp_ov => sp_ov,
 			aout => stack_tos,
-			bout => stack_nos
+			bout => stack_nos,
+                        ena_poc => ena_poc,
+                        ena_pmc => ena_pmc,
+                        ena_pac => ena_pac,
+                        inst_state => inst_state,
+                        fmc => fmc,
+                        mmc => mmc,
+                        foc => foc,
+                        moc => moc
 		);
 
 	exc_req.spov <= sp_ov;
@@ -204,7 +221,16 @@ begin
 			bc_wr_ena => bc_wr_ena,
 
 			sc_mem_out => sc_ctrl_mem_out,
-			sc_mem_in => sc_ctrl_mem_in
+			sc_mem_in => sc_ctrl_mem_in,
+
+                        ena_poc => ena_poc,
+                        ena_pmc => ena_pmc,
+                        ena_pac => ena_pac,
+                        inst_state => inst_state,
+                        fmc => fmc,
+                        mmc => mmc,
+                        foc => foc,
+                        moc => moc
 		);
 
 

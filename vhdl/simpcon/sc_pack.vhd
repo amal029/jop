@@ -41,7 +41,7 @@ use ieee.numeric_std.all;
 package sc_pack is
 
 	-- two more bits than needed for the main memory
-	--    one to distinguishe between memory and IO access
+	--    one to distinguish between memory and IO access
 	--    one more to allow memory mirroring for size auto
 	--        detection at boot time
 	constant SC_ADDR_SIZE : integer := 23;
